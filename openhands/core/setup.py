@@ -67,6 +67,9 @@ def create_runtime(
 
     # runtime and tools
     runtime_cls = get_runtime_cls(config.runtime)
+    # TODO: delete this. check which runtime is used
+    logger.info(f'Using runtime: {runtime_cls.__name__}')
+
     logger.debug(f'Initializing runtime: {runtime_cls.__name__}')
     runtime: Runtime = runtime_cls(
         config=config,
