@@ -135,3 +135,6 @@ class AppConfig(BaseModel):
         """Post-initialization hook, called when the instance is created with only default values."""
         super().model_post_init(__context)
         AppConfig.defaults_dict = model_defaults_to_dict(self)
+        logger.openhands_logger.info(
+            f'app_config: Sandbox base container image: {self.sandbox.base_container_image}'
+        )

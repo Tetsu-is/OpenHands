@@ -204,6 +204,11 @@ async def process_issue(
         timeout=300,
     )
 
+    # TODO: delete this. logging which base container image is used
+    logger.info(
+        f'sandbox config: Using base container image: {sandbox_config.base_container_image}'
+    )
+
     if os.getenv('GITLAB_CI') == 'true':
         sandbox_config.local_runtime_url = os.getenv(
             'LOCAL_RUNTIME_URL', 'http://localhost'
