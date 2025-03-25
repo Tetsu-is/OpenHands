@@ -13,7 +13,6 @@ from uuid import uuid4
 from pydantic import SecretStr
 from termcolor import colored
 
-import openhands
 from openhands.controller.state.state import State
 from openhands.core.config import AgentConfig, AppConfig, LLMConfig, SandboxConfig
 from openhands.core.logger import openhands_logger as logger
@@ -231,6 +230,11 @@ async def process_issue(
     config.set_llm_config(llm_config)
 
     runtime = create_runtime(config)
+    # ここでcliと同じくconnect()するのでこの時点でruntime_container_imageがNoneの場合はbuildされるはず
+    logger.info(f'before "await runtime.connect()" print config: {config}')
+    logger.info(
+        f'base_container_image: {sandbox_config.base_container_image}, runtime_container_image: {sandbox_config.runtime_container_image}'
+    )
     await runtime.connect()
 
     def on_event(evt: Event) -> None:
@@ -646,10 +650,16 @@ def main() -> None:
     base_container_image = 'ruby:3.2.2'
 
     runtime_container_image = my_args.runtime_container_image
+    logger.info(f'runtime_container_image from args: {runtime_container_image}')
     if runtime_container_image is None and not my_args.is_experimental:
-        runtime_container_image = (
-            f'ghcr.io/all-hands-ai/runtime:{openhands.__version__}-nikolaik'
+        logger.info(
+            'runtime_container_image is None and not my_args.is_experimental then intentionally set to None'
         )
+        # runtime_container_image = (
+        #     f'ghcr.io/all-hands-ai/runtime:{openhands.__version__}-nikolaik'
+        # )
+        # TODO: 多分ここはNoneで放置しておいて役者が揃ったタイミングでbuildする
+        runtime_container_image = None
 
     parts = my_args.selected_repo.rsplit('/', 1)
     if len(parts) < 2:
