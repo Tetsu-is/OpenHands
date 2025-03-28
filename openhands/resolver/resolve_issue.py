@@ -195,7 +195,9 @@ async def process_issue(
     # they're set by default if nothing else overrides them
     # FIXME we should remove them here
     sandbox_config = SandboxConfig(
-        base_container_image=base_container_image,
+        # TODO: 綺麗にする(引数なしならデフォルト値になるように)
+        base_container_image=base_container_image
+        or 'nikolaik/python-nodejs:python3.12-nodejs22',
         runtime_container_image=runtime_container_image,
         enable_auto_lint=False,
         use_host_network=False,
