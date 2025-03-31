@@ -13,7 +13,6 @@ from uuid import uuid4
 from pydantic import SecretStr
 from termcolor import colored
 
-import openhands
 from openhands.controller.state.state import State
 from openhands.core.config import AgentConfig, AppConfig, LLMConfig, SandboxConfig
 from openhands.core.logger import openhands_logger as logger
@@ -167,6 +166,7 @@ async def process_issue(
     max_iterations: int,
     llm_config: LLMConfig,
     output_dir: str,
+    base_container_image: str,
     runtime_container_image: str | None,
     prompt_template: str,
     issue_handler: ServiceContextIssue | ServiceContextPR,
@@ -195,11 +195,19 @@ async def process_issue(
     # they're set by default if nothing else overrides them
     # FIXME we should remove them here
     sandbox_config = SandboxConfig(
+        # TODO: 綺麗にする(引数なしならデフォルト値になるように)
+        base_container_image=base_container_image
+        or 'nikolaik/python-nodejs:python3.12-nodejs22',
         runtime_container_image=runtime_container_image,
         enable_auto_lint=False,
         use_host_network=False,
         # large enough timeout, since some testcases take very long to run
         timeout=300,
+    )
+
+    # TODO: delete this. logging which base container image is used
+    logger.info(
+        f'sandbox config: Using base container image: {sandbox_config.base_container_image}'
     )
 
     if os.getenv('GITLAB_CI') == 'true':
@@ -224,6 +232,11 @@ async def process_issue(
     config.set_llm_config(llm_config)
 
     runtime = create_runtime(config)
+    # ここでcliと同じくconnect()するのでこの時点でruntime_container_imageがNoneの場合はbuildされるはず
+    logger.info(f'before "await runtime.connect()" print config: {config}')
+    logger.info(
+        f'base_container_image: {sandbox_config.base_container_image}, runtime_container_image: {sandbox_config.runtime_container_image}'
+    )
     await runtime.connect()
 
     def on_event(evt: Event) -> None:
@@ -354,6 +367,7 @@ async def resolve_issue(
     max_iterations: int,
     output_dir: str,
     llm_config: LLMConfig,
+    base_container_image: str,
     runtime_container_image: str | None,
     prompt_template: str,
     issue_type: str,
@@ -514,6 +528,7 @@ async def resolve_issue(
             max_iterations,
             llm_config,
             output_dir,
+            base_container_image,
             runtime_container_image,
             prompt_template,
             issue_handler,
@@ -555,6 +570,12 @@ def main() -> None:
         type=str,
         default=None,
         help='username to access the repository.',
+    )
+    parser.add_argument(
+        '--base-container-image',
+        type=str,
+        default=None,
+        help='Base container image to use for testing.',
     )
     parser.add_argument(
         '--runtime-container-image',
@@ -632,11 +653,19 @@ def main() -> None:
 
     my_args = parser.parse_args()
 
+    base_container_image = my_args.base_container_image
+
     runtime_container_image = my_args.runtime_container_image
+    logger.info(f'runtime_container_image from args: {runtime_container_image}')
     if runtime_container_image is None and not my_args.is_experimental:
-        runtime_container_image = (
-            f'ghcr.io/all-hands-ai/runtime:{openhands.__version__}-nikolaik'
+        logger.info(
+            'runtime_container_image is None and not my_args.is_experimental then intentionally set to None'
         )
+        # runtime_container_image = (
+        #     f'ghcr.io/all-hands-ai/runtime:{openhands.__version__}-nikolaik'
+        # )
+        # TODO: 多分ここはNoneで放置しておいて役者が揃ったタイミングでbuildする
+        runtime_container_image = None
 
     parts = my_args.selected_repo.rsplit('/', 1)
     if len(parts) < 2:
@@ -690,6 +719,7 @@ def main() -> None:
             token=token,
             username=username,
             platform=platform,
+            base_container_image=base_container_image,
             runtime_container_image=runtime_container_image,
             max_iterations=my_args.max_iterations,
             output_dir=my_args.output_dir,
