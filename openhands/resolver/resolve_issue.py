@@ -173,6 +173,11 @@ async def process_issue(
     repo_instruction: str | None = None,
     reset_logger: bool = False,
 ) -> ResolverOutput:
+    logger.info(f'[LOG] process_issue(): Base container image: {base_container_image}')
+    logger.info(
+        f'[LOG] process_issue(): Runtime container image: {runtime_container_image}'
+    )
+
     # Setup the logger properly, so you can run multi-processing to parallelize processing
     if reset_logger:
         log_dir = os.path.join(output_dir, 'infer_logs')
@@ -201,6 +206,13 @@ async def process_issue(
         use_host_network=False,
         # large enough timeout, since some testcases take very long to run
         timeout=300,
+    )
+
+    logger.info(
+        f'[LOG] process_issue(): Sandbox config base_container_image: {sandbox_config.base_container_image}'
+    )
+    logger.info(
+        f'[LOG] process_issue(): Sandbox config runtime_container_image: {sandbox_config.runtime_container_image}'
     )
 
     if os.getenv('GITLAB_CI') == 'true':
@@ -364,6 +376,11 @@ async def resolve_issue(
     comment_id: int | None,
     reset_logger: bool = False,
 ) -> None:
+    logger.info(f'[LOG] resolve_issue(): Base container image: {base_container_image}')
+    logger.info(
+        f'[LOG] resolve_issue(): Runtime container image: {runtime_container_image}'
+    )
+
     """Resolve a single issue.
 
     Args:
@@ -642,6 +659,7 @@ def main() -> None:
     my_args = parser.parse_args()
 
     base_container_image = my_args.base_container_image
+    logger.info(f'[LOG] Base container image: {base_container_image}')
 
     runtime_container_image = my_args.runtime_container_image
 
