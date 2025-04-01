@@ -168,11 +168,21 @@ class DockerRuntimeBuilder(RuntimeBuilder):
                 bufsize=1,
             )
 
+            stdout_lines = []
+            stderr_lines = []
+
             if process.stdout:
                 for line in iter(process.stdout.readline, ''):
                     line = line.strip()
                     if line:
+                        stdout_lines.append(line)
                         self._output_logs(line)
+
+            if process.stderr:
+                for line in iter(process.stderr.readline, ''):
+                    line = line.strip()
+                    if line:
+                        stderr_lines.append(line)
 
             return_code = process.wait()
 
