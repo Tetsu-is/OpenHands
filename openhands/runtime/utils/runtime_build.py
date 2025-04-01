@@ -71,15 +71,6 @@ def get_runtime_image_repo_and_tag(base_image: str) -> tuple[str, str]:
     """
     # get_runtime_image_repoはENVからimage_repoを取得して、なければdefaultのall-hands-ai/runtimeを返す
     if get_runtime_image_repo() in base_image:
-        logger.debug(
-            f'The provided image [{base_image}] is already a valid runtime image.\n'
-            f'Will try to reuse it as is.'
-        )
-        logger.info(
-            f'[LOG] The provided image [{base_image}] is already a valid runtime image.\n'
-            f'Will try to reuse it as is.'
-        )
-
         if ':' not in base_image:
             base_image = base_image + ':latest'
         repo, tag = base_image.split(':')

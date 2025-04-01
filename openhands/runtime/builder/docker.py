@@ -145,7 +145,6 @@ class DockerRuntimeBuilder(RuntimeBuilder):
 
         cache_dir = '/tmp/.buildx-cache'
         if use_local_cache and self._is_cache_usable(cache_dir):
-            logger.info(f'[LOG] use local cache: {cache_dir}')
             buildx_cmd.extend(
                 [
                     f'--cache-from=type=local,src={cache_dir}',
@@ -153,38 +152,20 @@ class DockerRuntimeBuilder(RuntimeBuilder):
                 ]
             )
 
-        logger.info('[LOG] check-point 1-1')
         if extra_build_args:
             buildx_cmd.extend(extra_build_args)
 
-        logger.info('[LOG] check-point 1-2')
-
         buildx_cmd.append(path)  # must be last!
 
-        logger.info('[LOG] check-point 1-3')
-
         logger.info(f'buildx_cmd: {buildx_cmd}')
-        logger.info(f'[LOG] Build context path: {path}')
-        logger.info(f'[LOG] Build context path exists: {os.path.exists(path)}')
-        logger.info(f'[LOG] Build context path is directory: {os.path.isdir(path)}')
-        logger.info(f'[LOG] Build context path contents: {os.listdir(path)}')
 
         logger.info('hoge')
-
-        # docker image lsで手元のイメージを確認
-        logger.info(f'[LOG] docker image ls: {self.docker_client.images.list()}')
-        logger.info(
-            f'[LOG] docker_client.imagesのinstance: {self.docker_client.images}'
-        )
 
         self.rolling_logger.start(
             f'================ {buildx_cmd[0].upper()} BUILD STARTED ================'
         )
 
-        logger.info('[LOG] check-point 1-4')
-
         # subprocess上でdocker image lsを実行する >>
-        logger.info('[LOG] print docker image ls in subprocess')
         ls_cmd = ['docker', 'image', 'ls']
         test_process = subprocess.Popen(
             ls_cmd,
@@ -200,7 +181,6 @@ class DockerRuntimeBuilder(RuntimeBuilder):
                 line = line.strip()
                 if line:
                     stdout_lines.append(line)
-                    logger.info(f'[LOG] docker image ls: {line}')
         else:
             logger.warning('[LOG] No stdout available from docker image ls command')
 
@@ -220,7 +200,6 @@ class DockerRuntimeBuilder(RuntimeBuilder):
                 line = line.strip()
                 if line:
                     stdout_lines.append(line)
-                    logger.info(f'[LOG] docker buildx ls: {line}')
         else:
             logger.warning('[LOG] No stdout available from docker buildx ls command')
 
@@ -240,48 +219,11 @@ class DockerRuntimeBuilder(RuntimeBuilder):
                 line = line.strip()
                 if line:
                     stdout_lines.append(line)
-                    logger.info(f'[LOG] docker buildx use default: {line}')
         else:
             logger.warning(
                 '[LOG] No stdout available from docker buildx use default command'
             )
-
-        # << instanceをdefaultにセットする
-
-        # subprocess上でbuildコマンドを実行する >>
-        # logger.info('[LOG] build in subprocess for testing')
-        # # use docker build not buildx
-        # build_cmd = [
-        #     'docker',
-        #     'build',
-        #     '-t',
-        #     'custom-image-from-sandbox',
-        #     '--load',
-        #     path,
-        # ]
-        # build_process = subprocess.Popen(
-        #     build_cmd,
-        #     stdout=subprocess.PIPE,
-        #     stderr=subprocess.STDOUT,
-        #     universal_newlines=True,
-        #     bufsize=1,
-        # )
-
-        # stdout_lines = []
-
-        # if build_process.stdout:
-        #     for line in iter(build_process.stdout.readline, ''):
-        #         line = line.strip()
-        #         if line:
-        #             stdout_lines.append(line)
-        #             logger.info(f'[LOG] docker build: {line}')
-        # else:
-        #     logger.warning('[LOG] No stdout available from docker build command')
-
-        # << subprocess上でbuildコマンドを実行する
-
         try:
-            logger.info('[LOG] check-point 1-5 process.Popen()')
             process = subprocess.Popen(
                 buildx_cmd,
                 stdout=subprocess.PIPE,
@@ -309,7 +251,6 @@ class DockerRuntimeBuilder(RuntimeBuilder):
                         logger.debug(f'Docker build stderr: {line}')
             # < cursor
             return_code = process.wait(timeout=180)
-            logger.info(f'[LOG] check-point 1-6 return_code: {return_code}')
 
             if return_code != 0:
                 error_output = '\n'.join(stdout_lines + stderr_lines)  # cursor
