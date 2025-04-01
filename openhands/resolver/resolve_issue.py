@@ -166,7 +166,7 @@ async def process_issue(
     max_iterations: int,
     llm_config: LLMConfig,
     output_dir: str,
-    base_container_image: str | None,
+    base_container_image: str,
     runtime_container_image: str | None,
     prompt_template: str,
     issue_handler: ServiceContextIssue | ServiceContextPR,
@@ -367,7 +367,7 @@ async def resolve_issue(
     max_iterations: int,
     output_dir: str,
     llm_config: LLMConfig,
-    base_container_image: str | None,
+    base_container_image: str,
     runtime_container_image: str | None,
     prompt_template: str,
     issue_type: str,
@@ -662,6 +662,14 @@ def main() -> None:
     logger.info(f'[LOG] Base container image: {base_container_image}')
 
     runtime_container_image = my_args.runtime_container_image
+    # if runtime_container_image is None and not my_args.is_experimental:
+    #     # runtime_container_image = (
+    #     #     f'ghcr.io/all-hands-ai/runtime:{openhands.__version__}-nikolaik'
+    #     # )
+    #     logger.info(
+    #         'runtime_container_image is None and not my_args.is_experimental then intentionally set to None'
+    #     )
+    #     runtime_container_image = None
 
     parts = my_args.selected_repo.rsplit('/', 1)
     if len(parts) < 2:

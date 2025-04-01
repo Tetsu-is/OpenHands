@@ -61,7 +61,7 @@ async def resolve_issues(
     num_workers: int,
     output_dir: str,
     llm_config: LLMConfig,
-    base_container_image: str | None,
+    base_container_image: str,
     runtime_container_image: str,
     prompt_template: str,
     issue_type: str,
