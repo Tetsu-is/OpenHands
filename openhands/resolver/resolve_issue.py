@@ -13,7 +13,6 @@ from uuid import uuid4
 from pydantic import SecretStr
 from termcolor import colored
 
-import openhands
 from openhands.controller.state.state import State
 from openhands.core.config import AgentConfig, AppConfig, LLMConfig, SandboxConfig
 from openhands.core.logger import openhands_logger as logger
@@ -557,6 +556,12 @@ def main() -> None:
         help='username to access the repository.',
     )
     parser.add_argument(
+        '--base-container-image',
+        type=str,
+        default=None,
+        help='Base container image to use.',
+    )
+    parser.add_argument(
         '--runtime-container-image',
         type=str,
         default=None,
@@ -633,10 +638,16 @@ def main() -> None:
     my_args = parser.parse_args()
 
     runtime_container_image = my_args.runtime_container_image
-    if runtime_container_image is None and not my_args.is_experimental:
-        runtime_container_image = (
-            f'ghcr.io/all-hands-ai/runtime:{openhands.__version__}-nikolaik'
-        )
+    # if runtime_container_image is None and not my_args.is_experimental:
+    #     runtime_container_image = (
+    #         f'ghcr.io/all-hands-ai/runtime:{openhands.__version__}-nikolaik'
+    #     )
+
+    # check the content of runtime_container_image. 引数を与えてないときはNoneになるはず
+    logger.info(f'runtime_container_image: {runtime_container_image}')
+
+    base_container_image = my_args.base_container_image
+    logger.info(f'base_container_image: {base_container_image}')
 
     parts = my_args.selected_repo.rsplit('/', 1)
     if len(parts) < 2:
