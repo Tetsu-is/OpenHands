@@ -163,7 +163,7 @@ class DockerRuntimeBuilder(RuntimeBuilder):
             process = subprocess.Popen(
                 buildx_cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
+                stderr=subprocess.PIPE,
                 universal_newlines=True,
                 bufsize=1,
             )
@@ -183,25 +183,36 @@ class DockerRuntimeBuilder(RuntimeBuilder):
                     line = line.strip()
                     if line:
                         stderr_lines.append(line)
+                        self._output_logs(f'ERROR: {line}')
 
             return_code = process.wait()
 
             if return_code != 0:
+                error_output = (
+                    '\n'.join(stderr_lines) if stderr_lines else 'No stderr output'
+                )
                 raise subprocess.CalledProcessError(
                     return_code,
-                    process.args,
-                    output=process.stdout.read() if process.stdout else None,
-                    stderr=process.stderr.read() if process.stderr else None,
+                    buildx_cmd,
+                    output='\n'.join(stdout_lines) if stdout_lines else None,
+                    stderr=error_output,
                 )
 
         except subprocess.CalledProcessError as e:
-            logger.error(f'Image build failed:\n{e}')  # TODO: {e} is empty
-            logger.error(f'Command output:\n{e.output}')
+            error_message = f'Image build failed with return code {e.returncode}:\n{e}'
+            logger.error(error_message)
+
+            if e.output:
+                logger.error(f'Command output:\n{e.output}')
+
+            if e.stderr:
+                logger.error(f'Command stderr:\n{e.stderr}')
+
             if self.rolling_logger.is_enabled():
                 logger.error(
                     'Docker build output:\n' + self.rolling_logger.all_lines
                 )  # Show the error
-            raise
+            raise AgentRuntimeBuildError(error_message)
 
         except subprocess.TimeoutExpired:
             logger.error('Image build timed out')
