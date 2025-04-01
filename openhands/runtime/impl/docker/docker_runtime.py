@@ -137,6 +137,7 @@ class DockerRuntime(ActionExecutionClient):
                     raise ValueError(
                         'Neither runtime container image nor base container image is set'
                     )
+                logger.info('build runtime image with base container image')
                 self.send_status_message('STATUS$STARTING_CONTAINER')
                 self.runtime_container_image = build_runtime_image(
                     self.base_container_image,

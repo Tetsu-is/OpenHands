@@ -155,6 +155,8 @@ class DockerRuntimeBuilder(RuntimeBuilder):
 
         buildx_cmd.append(path)  # must be last!
 
+        logger.info(f'buildx_cmd: {buildx_cmd}')
+
         self.rolling_logger.start(
             f'================ {buildx_cmd[0].upper()} BUILD STARTED ================'
         )
