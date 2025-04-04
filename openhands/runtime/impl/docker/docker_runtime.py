@@ -37,16 +37,6 @@ APP_PORT_RANGE_1 = (50000, 54999)
 APP_PORT_RANGE_2 = (55000, 59999)
 
 
-def _is_retryable_wait_until_alive_error(exception):
-    if isinstance(exception, tenacity.RetryError):
-        cause = exception.last_attempt.exception()
-        return _is_retryable_wait_until_alive_error(cause)
-
-    return isinstance(
-        exception, (ConnectionError, httpx.NetworkError, httpx.RemoteProtocolError)
-    )
-
-
 class DockerRuntime(ActionExecutionClient):
     """This runtime will subscribe the event stream.
 
@@ -365,7 +355,7 @@ class DockerRuntime(ActionExecutionClient):
 
     @tenacity.retry(
         stop=tenacity.stop_after_delay(120) | stop_if_should_exit(),
-        retry=tenacity.retry_if_exception(_is_retryable_wait_until_alive_error),
+        retry=tenacity.retry_if_exception_type((ConnectionError, httpx.NetworkError)),
         reraise=True,
         wait=tenacity.wait_fixed(2),
     )
