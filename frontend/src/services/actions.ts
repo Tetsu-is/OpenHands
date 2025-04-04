@@ -87,10 +87,13 @@ export function handleActionMessage(message: ActionMessage) {
   }
 
   // Update metrics if available
-  if (message.llm_metrics) {
+  if (
+    message.llm_metrics ||
+    message.tool_call_metadata?.model_response?.usage
+  ) {
     const metrics = {
       cost: message.llm_metrics?.accumulated_cost ?? null,
-      usage: message.llm_metrics?.accumulated_token_usage ?? null,
+      usage: message.tool_call_metadata?.model_response?.usage ?? null,
     };
     store.dispatch(setMetrics(metrics));
   }

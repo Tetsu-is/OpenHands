@@ -5,8 +5,7 @@ interface MetricsState {
   usage: {
     prompt_tokens: number;
     completion_tokens: number;
-    cache_read_tokens: number;
-    cache_write_tokens: number;
+    total_tokens: number;
   } | null;
 }
 
