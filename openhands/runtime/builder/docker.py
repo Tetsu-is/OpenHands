@@ -229,13 +229,13 @@ class DockerRuntimeBuilder(RuntimeBuilder):
         # << docker buildxのinstanceを確認する
 
         # instanceをdefaultにセットする
-        # set_default_instance_cmd = ['docker', 'buildx', 'use', 'default']
-        # set_default_instance_process = subprocess.Popen(
-        #     set_default_instance_cmd,
-        #     stdout=subprocess.PIPE,
-        #     stderr=subprocess.STDOUT,
-        #     universal_newlines=True,
-        # )
+        set_default_instance_cmd = ['docker', 'buildx', 'use', 'default']
+        subprocess.run(
+            set_default_instance_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+        )
 
         # if set_default_instance_process.stdout:
         #     for line in iter(set_default_instance_process.stdout.readline, ''):
