@@ -141,6 +141,8 @@ class DockerRuntimeBuilder(RuntimeBuilder):
         if platform:
             buildx_cmd.append(f'--platform={platform}')
 
+        logger.info(f'platform: {platform}')
+
         cache_dir = '/tmp/.buildx-cache'
         if use_local_cache and self._is_cache_usable(cache_dir):
             buildx_cmd.extend(
