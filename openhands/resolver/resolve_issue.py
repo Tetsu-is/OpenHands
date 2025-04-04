@@ -177,7 +177,6 @@ async def process_issue(
     logger.info(
         f'[LOG] process_issue(): Runtime container image: {runtime_container_image}'
     )
-    logger.info(f'[LOG] process_issue(): Platform: {platform}')
 
     # Setup the logger properly, so you can run multi-processing to parallelize processing
     if reset_logger:
@@ -381,7 +380,6 @@ async def resolve_issue(
     logger.info(
         f'[LOG] resolve_issue(): Runtime container image: {runtime_container_image}'
     )
-    logger.info(f'[LOG] resolve_issue(): Platform: {platform}')
 
     """Resolve a single issue.
 
@@ -689,7 +687,6 @@ def main() -> None:
     platform = identify_token(token, my_args.selected_repo)
     if platform == Platform.INVALID:
         raise ValueError('Token is invalid.')
-    logger.info(f'[LOG] platform: {platform}')
 
     api_key = my_args.llm_api_key or os.environ['LLM_API_KEY']
     llm_config = LLMConfig(

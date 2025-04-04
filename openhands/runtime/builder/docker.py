@@ -126,18 +126,6 @@ class DockerRuntimeBuilder(RuntimeBuilder):
         target_image_repo, target_image_source_tag = target_image_hash_name.split(':')
         target_image_tag = tags[1].split(':')[1] if len(tags) > 1 else None
 
-        if os.getenv('GITHUB_ACTIONS') == 'true':
-            logger.info('GITHUB_ACTIONS is set, using default builder')
-            subprocess.run(
-                [
-                    'docker' if not self.is_podman else 'podman',
-                    'buildx',
-                    'use',
-                    'default',
-                ],
-                check=True,
-            )
-
         buildx_cmd = [
             'docker' if not self.is_podman else 'podman',
             'buildx',
@@ -152,8 +140,6 @@ class DockerRuntimeBuilder(RuntimeBuilder):
         # Include the platform argument only if platform is specified
         if platform:
             buildx_cmd.append(f'--platform={platform}')
-
-        logger.info(f'[LOG] platform: {platform}')
 
         cache_dir = '/tmp/.buildx-cache'
         if use_local_cache and self._is_cache_usable(cache_dir):
