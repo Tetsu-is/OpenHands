@@ -431,7 +431,7 @@ async def resolve_issue(
     # checkout the repo
     repo_dir = os.path.join(output_dir, 'repo')
     if not os.path.exists(repo_dir):
-        checkout_output = subprocess.check_output(  # noqa: ASYNC101
+        checkout_output = subprocess.check_output(
             [
                 'git',
                 'clone',
@@ -444,7 +444,7 @@ async def resolve_issue(
 
     # get the commit id of current repo for reproducibility
     base_commit = (
-        subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo_dir)  # noqa: ASYNC101
+        subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo_dir)
         .decode('utf-8')
         .strip()
     )
@@ -454,7 +454,7 @@ async def resolve_issue(
         # Check for .openhands_instructions file in the workspace directory
         openhands_instructions_path = os.path.join(repo_dir, '.openhands_instructions')
         if os.path.exists(openhands_instructions_path):
-            with open(openhands_instructions_path, 'r') as f:  # noqa: ASYNC101
+            with open(openhands_instructions_path, 'r') as f:
                 repo_instruction = f.read()
 
     # OUTPUT FILE
@@ -463,7 +463,7 @@ async def resolve_issue(
 
     # Check if this issue was already processed
     if os.path.exists(output_file):
-        with open(output_file, 'r') as f:  # noqa: ASYNC101
+        with open(output_file, 'r') as f:
             for line in f:
                 data = ResolverOutput.model_validate_json(line)
                 if data.issue.number == issue_number:
@@ -472,7 +472,7 @@ async def resolve_issue(
                     )
                     return
 
-    output_fp = open(output_file, 'a')  # noqa: ASYNC101
+    output_fp = open(output_file, 'a')
 
     logger.info(
         f'Resolving issue {issue_number} with Agent {AGENT_CLASS}, model {model_name}, max iterations {max_iterations}.'
@@ -491,20 +491,20 @@ async def resolve_issue(
 
             # Fetch the branch first to ensure it exists locally
             fetch_cmd = ['git', 'fetch', 'origin', branch_to_use]
-            subprocess.check_output(  # noqa: ASYNC101
+            subprocess.check_output(
                 fetch_cmd,
                 cwd=repo_dir,
             )
 
             # Checkout the branch
             checkout_cmd = ['git', 'checkout', branch_to_use]
-            subprocess.check_output(  # noqa: ASYNC101
+            subprocess.check_output(
                 checkout_cmd,
                 cwd=repo_dir,
             )
 
             base_commit = (
-                subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo_dir)  # noqa: ASYNC101
+                subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo_dir)
                 .decode('utf-8')
                 .strip()
             )
