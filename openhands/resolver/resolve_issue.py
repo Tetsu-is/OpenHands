@@ -645,13 +645,7 @@ def main() -> None:
 
     runtime_container_image = my_args.runtime_container_image
     if runtime_container_image is None and not my_args.is_experimental:
-        # runtime_container_image = (
-        #     f'ghcr.io/all-hands-ai/runtime:{openhands.__version__}-nikolaik'
-        # )
-        logger.info(
-            'runtime_container_image is None and not my_args.is_experimental then intentionally set to None'
-        )
-        runtime_container_image = None
+        runtime_container_image = None  # TODO: 決して挙動変わるか確認する(ないはず)
 
     parts = my_args.selected_repo.rsplit('/', 1)
     if len(parts) < 2:
