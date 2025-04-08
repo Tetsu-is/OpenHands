@@ -159,9 +159,9 @@ class DockerRuntimeBuilder(RuntimeBuilder):
             f'================ {buildx_cmd[0].upper()} BUILD STARTED ================'
         )
 
-        set_default_instance_cmd = ['docker', 'buildx', 'use', 'default']
+        builder_cmd = ['docker', 'buildx', 'use', 'default']
         subprocess.Popen(
-            set_default_instance_cmd,
+            builder_cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             universal_newlines=True,
