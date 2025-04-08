@@ -159,6 +159,27 @@ class DockerRuntimeBuilder(RuntimeBuilder):
             f'================ {buildx_cmd[0].upper()} BUILD STARTED ================'
         )
 
+        set_default_instance_cmd = ['docker', 'buildx', 'use', 'default']
+        set_default_instance_process = subprocess.Popen(
+            set_default_instance_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            universal_newlines=True,
+        )
+
+        stdout_lines = []
+
+        if set_default_instance_process.stdout:
+            for line in iter(set_default_instance_process.stdout.readline, ''):
+                line = line.strip()
+                if line:
+                    stdout_lines.append(line)
+                    logger.info(f'[LOG] docker buildx use default: {line}')
+        else:
+            logger.warning(
+                '[LOG] No stdout available from docker buildx use default command'
+            )
+
         try:
             process = subprocess.Popen(
                 buildx_cmd,
