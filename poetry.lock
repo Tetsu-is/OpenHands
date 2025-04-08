@@ -2661,7 +2661,7 @@ grpcio = {version = ">=1.49.1,<2.0dev", optional = true, markers = "python_versi
 grpcio-status = {version = ">=1.49.1,<2.0.dev0", optional = true, markers = "python_version >= \"3.11\" and extra == \"grpc\""}
 proto-plus = [
     {version = ">=1.25.0,<2.0.0dev", markers = "python_version >= \"3.13\""},
-    {version = ">=1.22.3,<2.0.0dev", markers = "python_version < \"3.13\""},
+    {version = ">=1.22.3,<2.0.0dev"},
 ]
 protobuf = ">=3.19.5,<3.20.0 || >3.20.0,<3.20.1 || >3.20.1,<4.21.0 || >4.21.0,<4.21.1 || >4.21.1,<4.21.2 || >4.21.2,<4.21.3 || >4.21.3,<4.21.4 || >4.21.4,<4.21.5 || >4.21.5,<6.0.0.dev0"
 requests = ">=2.18.0,<3.0.0.dev0"
@@ -2874,7 +2874,7 @@ google-auth = ">=2.14.1,<2.24.0 || >2.24.0,<2.25.0 || >2.25.0,<3.0.0dev"
 grpc-google-iam-v1 = ">=0.14.0,<1.0.0dev"
 proto-plus = [
     {version = ">=1.25.0,<2.0.0dev", markers = "python_version >= \"3.13\""},
-    {version = ">=1.22.3,<2.0.0dev"},
+    {version = ">=1.22.3,<2.0.0dev", markers = "python_version < \"3.13\""},
 ]
 protobuf = ">=3.20.2,<4.21.0 || >4.21.0,<4.21.1 || >4.21.1,<4.21.2 || >4.21.2,<4.21.3 || >4.21.3,<4.21.4 || >4.21.4,<4.21.5 || >4.21.5,<6.0.0dev"
 
@@ -4856,14 +4856,14 @@ files = [
 
 [[package]]
 name = "modal"
-version = "0.73.145"
+version = "0.73.149"
 description = "Python client library for Modal"
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "evaluation"]
 files = [
-    {file = "modal-0.73.145-py3-none-any.whl", hash = "sha256:a63c2920ffeeab53aa6aa917b3d101f8926d5ba7a4ac2e343ec61fe85de9b916"},
-    {file = "modal-0.73.145.tar.gz", hash = "sha256:dee3349c13bd2223d5763ddb70e6d8b295963f5ba9128e5767851196d3134dd3"},
+    {file = "modal-0.73.149-py3-none-any.whl", hash = "sha256:39cd58aa4f6074448cbdcfe44267f970932d94e3d2152fc7af63ede732f8ae5e"},
+    {file = "modal-0.73.149.tar.gz", hash = "sha256:e8c4fc3758a25092e1db8206119711693dabf28028d1507da7e57c0b6aeac4c2"},
 ]
 
 [package.dependencies]
