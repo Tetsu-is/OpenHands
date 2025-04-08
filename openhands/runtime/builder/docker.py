@@ -48,6 +48,7 @@ class DockerRuntimeBuilder(RuntimeBuilder):
         except FileNotFoundError:
             return False
 
+    # DockerRuntimeBuilder.build()
     def build(
         self,
         path: str,
@@ -126,6 +127,7 @@ class DockerRuntimeBuilder(RuntimeBuilder):
         target_image_repo, target_image_source_tag = target_image_hash_name.split(':')
         target_image_tag = tags[1].split(':')[1] if len(tags) > 1 else None
 
+        # docker buildxのコマンドを作成
         buildx_cmd = [
             'docker' if not self.is_podman else 'podman',
             'buildx',
@@ -159,29 +161,104 @@ class DockerRuntimeBuilder(RuntimeBuilder):
             f'================ {buildx_cmd[0].upper()} BUILD STARTED ================'
         )
 
+        logger.info('[LOG] check-point 1-4')
+
+        # instanceをdefaultにセットする
+        set_default_instance_cmd = ['docker', 'buildx', 'use', 'default']
+        set_default_instance_process = subprocess.Popen(
+            set_default_instance_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            universal_newlines=True,
+        )
+
+        stdout_lines = []
+
+        if set_default_instance_process.stdout:
+            for line in iter(set_default_instance_process.stdout.readline, ''):
+                line = line.strip()
+                if line:
+                    stdout_lines.append(line)
+                    logger.info(f'[LOG] docker buildx use default: {line}')
+        else:
+            logger.warning(
+                '[LOG] No stdout available from docker buildx use default command'
+            )
+
+        # << instanceをdefaultにセットする
+
+        # subprocess上でbuildコマンドを実行する >>
+        # logger.info('[LOG] build in subprocess for testing')
+        # # use docker build not buildx
+        # build_cmd = [
+        #     'docker',
+        #     'build',
+        #     '-t',
+        #     'custom-image-from-sandbox',
+        #     '--load',
+        #     path,
+        # ]
+        # build_process = subprocess.Popen(
+        #     build_cmd,
+        #     stdout=subprocess.PIPE,
+        #     stderr=subprocess.STDOUT,
+        #     universal_newlines=True,
+        #     bufsize=1,
+        # )
+
+        # stdout_lines = []
+
+        # if build_process.stdout:
+        #     for line in iter(build_process.stdout.readline, ''):
+        #         line = line.strip()
+        #         if line:
+        #             stdout_lines.append(line)
+        #             logger.info(f'[LOG] docker build: {line}')
+        # else:
+        #     logger.warning('[LOG] No stdout available from docker build command')
+
+        # << subprocess上でbuildコマンドを実行する
+
         try:
+            logger.info('[LOG] check-point 1-5 process.Popen()')
             process = subprocess.Popen(
                 buildx_cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
+                stderr=subprocess.STDOUT,  # cursor
                 universal_newlines=True,
                 bufsize=1,
             )
+
+            stdout_lines = []  # cursor
+            stderr_lines = []  # cursor
 
             if process.stdout:
                 for line in iter(process.stdout.readline, ''):
                     line = line.strip()
                     if line:
+                        stdout_lines.append(line)  # cursor
                         self._output_logs(line)
 
-            return_code = process.wait()
+            # cursor >
+            if process.stderr:
+                for line in iter(process.stderr.readline, ''):
+                    line = line.strip()
+                    if line:
+                        stderr_lines.append(line)
+                        logger.debug(f'Docker build stderr: {line}')
+            # < cursor
+            return_code = process.wait(timeout=180)
+            logger.info(f'[LOG] check-point 1-6 return_code: {return_code}')
 
             if return_code != 0:
+                error_output = '\n'.join(stdout_lines + stderr_lines)  # cursor
                 raise subprocess.CalledProcessError(
                     return_code,
                     process.args,
-                    output=process.stdout.read() if process.stdout else None,
-                    stderr=process.stderr.read() if process.stderr else None,
+                    # output=process.stdout.read() if process.stdout else None,
+                    # stderr=process.stderr.read() if process.stderr else None,
+                    output=error_output,  # cursor
+                    stderr='\n'.join(stderr_lines),  # cursor
                 )
 
         except subprocess.CalledProcessError as e:

@@ -69,6 +69,7 @@ def get_runtime_image_repo_and_tag(base_image: str) -> tuple[str, str]:
     Returns:
     - tuple[str, str]: The Docker repo and tag of the Docker image
     """
+    # get_runtime_image_repoはENVからimage_repoを取得して、なければdefaultのall-hands-ai/runtimeを返す
     if get_runtime_image_repo() in base_image:
         logger.debug(
             f'The provided image [{base_image}] is already a valid runtime image.\n'
@@ -92,7 +93,6 @@ def get_runtime_image_repo_and_tag(base_image: str) -> tuple[str, str]:
             repo = repo.replace('/', '_s_')
 
         new_tag = f'oh_v{oh_version}_image_{repo}_tag_{tag}'
-
         # if it's still too long, hash the entire image name
         if len(new_tag) > 128:
             new_tag = f'oh_v{oh_version}_image_{hashlib.md5(new_tag.encode()).hexdigest()[:64]}'
@@ -132,6 +132,7 @@ def build_runtime_image(
 
     See https://docs.all-hands.dev/modules/usage/architecture/runtime for more details.
     """
+    # folderが与えられてない時はtemp_dirを作成してそこにbuildする。そんでそのtemp_dirをreturnする。
     if build_folder is None:
         with tempfile.TemporaryDirectory() as temp_dir:
             result = build_runtime_image_in_folder(
@@ -146,6 +147,7 @@ def build_runtime_image(
             )
             return result
 
+    # folderが与えられている時はそこにbuildする。
     result = build_runtime_image_in_folder(
         base_image=base_image,
         runtime_builder=runtime_builder,
