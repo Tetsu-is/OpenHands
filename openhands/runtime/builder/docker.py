@@ -126,6 +126,13 @@ class DockerRuntimeBuilder(RuntimeBuilder):
         target_image_repo, target_image_source_tag = target_image_hash_name.split(':')
         target_image_tag = tags[1].split(':')[1] if len(tags) > 1 else None
 
+        builder_set_cmd = [
+            'docker' if not self.is_podman else 'podman',
+            'buildx',
+            'use',
+            'default',
+        ]
+
         buildx_cmd = [
             'docker' if not self.is_podman else 'podman',
             'buildx',
@@ -181,6 +188,14 @@ class DockerRuntimeBuilder(RuntimeBuilder):
             )
 
         try:
+            subprocess.Popen(
+                builder_set_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True,
+                bufsize=1,
+            )
+
             process = subprocess.Popen(
                 buildx_cmd,
                 stdout=subprocess.PIPE,
