@@ -145,7 +145,6 @@ class DockerRuntimeBuilder(RuntimeBuilder):
 
         cache_dir = '/tmp/.buildx-cache'
         if use_local_cache and self._is_cache_usable(cache_dir):
-            logger.info(f'[LOG] use local cache: {cache_dir}')
             buildx_cmd.extend(
                 [
                     f'--cache-from=type=local,src={cache_dir}',
@@ -153,29 +152,10 @@ class DockerRuntimeBuilder(RuntimeBuilder):
                 ]
             )
 
-        logger.info('[LOG] check-point 1-1')
         if extra_build_args:
             buildx_cmd.extend(extra_build_args)
 
-        logger.info('[LOG] check-point 1-2')
-
         buildx_cmd.append(path)  # must be last!
-
-        logger.info('[LOG] check-point 1-3')
-
-        logger.info(f'buildx_cmd: {buildx_cmd}')
-        logger.info(f'[LOG] Build context path: {path}')
-        logger.info(f'[LOG] Build context path exists: {os.path.exists(path)}')
-        logger.info(f'[LOG] Build context path is directory: {os.path.isdir(path)}')
-        logger.info(f'[LOG] Build context path contents: {os.listdir(path)}')
-
-        logger.info('hoge')
-
-        # docker image lsで手元のイメージを確認
-        logger.info(f'[LOG] docker image ls: {self.docker_client.images.list()}')
-        logger.info(
-            f'[LOG] docker_client.imagesのinstance: {self.docker_client.images}'
-        )
 
         self.rolling_logger.start(
             f'================ {buildx_cmd[0].upper()} BUILD STARTED ================'
