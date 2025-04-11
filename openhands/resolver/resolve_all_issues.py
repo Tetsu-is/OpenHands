@@ -61,6 +61,7 @@ async def resolve_issues(
     num_workers: int,
     output_dir: str,
     llm_config: LLMConfig,
+    base_container_image: str,
     runtime_container_image: str,
     prompt_template: str,
     issue_type: str,
@@ -200,6 +201,7 @@ async def resolve_issues(
                     max_iterations,
                     llm_config,
                     output_dir,
+                    base_container_image,
                     runtime_container_image,
                     prompt_template,
                     issue_handler,
@@ -249,6 +251,12 @@ def main() -> None:
         type=str,
         default=None,
         help='Github or Gitlab username to access the repository.',
+    )
+    parser.add_argument(
+        '--base-container-image',
+        type=str,
+        default=None,
+        help='Base container image to use for testing.',
     )
     parser.add_argument(
         '--runtime-container-image',
@@ -326,6 +334,8 @@ def main() -> None:
 
     my_args = parser.parse_args()
 
+    base_container_image = my_args.base_container_image
+
     runtime_container_image = my_args.runtime_container_image
     if runtime_container_image is None:
         runtime_container_image = 'ghcr.io/all-hands-ai/runtime:0.32.0-nikolaik'
@@ -384,6 +394,7 @@ def main() -> None:
             token=token,
             username=username,
             platform=platform,
+            base_container_image=base_container_image,
             runtime_container_image=runtime_container_image,
             max_iterations=my_args.max_iterations,
             limit_issues=my_args.limit_issues,
