@@ -382,6 +382,7 @@ async def test_process_issue(mock_output_dir, mock_prompt_template):
     repo_instruction = 'Resolve this repo'
     max_iterations = 5
     llm_config = LLMConfig(model='test_model', api_key='test_api_key')
+    base_container_image = 'test_image:latest'
     runtime_container_image = 'test_image:latest'
 
     # Test cases for different scenarios
@@ -487,6 +488,7 @@ async def test_process_issue(mock_output_dir, mock_prompt_template):
                 max_iterations,
                 llm_config,
                 mock_output_dir,
+                base_container_image,
                 runtime_container_image,
                 mock_prompt_template,
                 handler_instance,

@@ -112,6 +112,7 @@ async def test_resolve_issue_no_issues_found():
                 max_iterations=5,
                 output_dir='/tmp',
                 llm_config=LLMConfig(model='test', api_key='test'),
+                base_container_image='test-image',
                 runtime_container_image='test-image',
                 prompt_template='test-template',
                 issue_type='pr',
