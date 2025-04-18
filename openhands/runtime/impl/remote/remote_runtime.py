@@ -200,6 +200,11 @@ class RemoteRuntime(ActionExecutionClient):
                 f'Installing extra user-provided dependencies in the runtime image: {self.config.sandbox.runtime_extra_deps}',
             )
 
+        if self.config.sandbox.base_container_image is None:
+            raise AgentRuntimeError(
+                'Base container image is not set.'
+            )
+
         # Build the container image
         self.container_image = build_runtime_image(
             self.config.sandbox.base_container_image,
