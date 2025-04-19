@@ -11,6 +11,7 @@ from typing import Any, Awaitable, TextIO
 from pydantic import SecretStr
 from tqdm import tqdm
 
+import openhands
 from openhands.core.config import LLMConfig
 from openhands.core.logger import openhands_logger as logger
 from openhands.resolver.interfaces.issue import Issue
@@ -61,11 +62,13 @@ async def resolve_issues(
     num_workers: int,
     output_dir: str,
     llm_config: LLMConfig,
+    base_container_image: str | None,
     runtime_container_image: str,
     prompt_template: str,
     issue_type: str,
     repo_instruction: str | None,
     issue_numbers: list[int] | None,
+    base_domain: str = 'github.com',
 ) -> None:
     """Resolve multiple github or gitlab issues.
 
@@ -86,7 +89,7 @@ async def resolve_issues(
         issue_numbers: List of issue numbers to resolve.
     """
     issue_handler = issue_handler_factory(
-        issue_type, owner, repo, token, llm_config, platform
+        issue_type, owner, repo, token, llm_config, platform, username, base_domain
     )
 
     # Load dataset
@@ -200,6 +203,7 @@ async def resolve_issues(
                     max_iterations,
                     llm_config,
                     output_dir,
+                    base_container_image,
                     runtime_container_image,
                     prompt_template,
                     issue_handler,
@@ -249,6 +253,12 @@ def main() -> None:
         type=str,
         default=None,
         help='Github or Gitlab username to access the repository.',
+    )
+    parser.add_argument(
+        '--base-container-image',
+        type=str,
+        default=None,
+        help='Base container image to use.',
     )
     parser.add_argument(
         '--runtime-container-image',
@@ -323,12 +333,26 @@ def main() -> None:
         choices=['issue', 'pr'],
         help='Type of issue to resolve, either open issue or pr comments.',
     )
+    parser.add_argument(
+        '--base-domain',
+        type=str,
+        default='github.com',
+        help='Base domain for GitHub Enterprise (default: github.com)',
+    )
 
     my_args = parser.parse_args()
 
+    base_container_image = my_args.base_container_image
+
     runtime_container_image = my_args.runtime_container_image
-    if runtime_container_image is None:
-        runtime_container_image = 'ghcr.io/all-hands-ai/runtime:0.32.0-nikolaik'
+
+    if runtime_container_image is not None and base_container_image != '':
+        raise ValueError('Cannot provide both runtime and base container images.')
+
+    if runtime_container_image is None and base_container_image == '' and not my_args.is_experimental:
+        runtime_container_image = (
+            f'ghcr.io/all-hands-ai/runtime:{openhands.__version__}-nikolaik'
+        )
 
     owner, repo = my_args.selected_repo.split('/')
     token = my_args.token or os.getenv('GITHUB_TOKEN') or os.getenv('GITLAB_TOKEN')
@@ -339,7 +363,7 @@ def main() -> None:
     if not token:
         raise ValueError('Token is required.')
 
-    platform = identify_token(token, my_args.selected_repo)
+    platform = identify_token(token, my_args.selected_repo, my_args.base_domain)
     if platform == Platform.INVALID:
         raise ValueError('Token is invalid.')
 
@@ -384,6 +408,7 @@ def main() -> None:
             token=token,
             username=username,
             platform=platform,
+            base_container_image=base_container_image,
             runtime_container_image=runtime_container_image,
             max_iterations=my_args.max_iterations,
             limit_issues=my_args.limit_issues,
@@ -394,6 +419,7 @@ def main() -> None:
             issue_type=issue_type,
             repo_instruction=repo_instruction,
             issue_numbers=issue_numbers,
+            base_domain=my_args.base_domain,
         )
     )
 
