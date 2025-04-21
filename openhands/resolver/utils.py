@@ -44,6 +44,8 @@ def identify_token(
             'Accept': 'application/vnd.github+json',
         }
 
+        logger.info(f'[LOG] github_repo_url: {github_repo_url}')
+
         try:
             github_repo_response = httpx.get(
                 github_repo_url, headers=github_bearer_headers, timeout=5
