@@ -86,7 +86,6 @@ class DockerRuntime(ActionExecutionClient):
             )
 
         self.config = config
-        self._runtime_initialized: bool = False
         self.status_callback = status_callback
 
         self._host_port = -1
@@ -133,10 +132,12 @@ class DockerRuntime(ActionExecutionClient):
                 f'Installing extra user-provided dependencies in the runtime image: {self.config.sandbox.runtime_extra_deps}',
             )
 
-    def _get_action_execution_server_host(self):
+    @property
+    def action_execution_server_url(self):
         return self.api_url
 
     async def connect(self):
+        logger.info('[LOG] DockerRuntime.connect() is called')
         self.send_status_message('STATUS$STARTING_RUNTIME')
         try:
             await call_sync_from_async(self._attach_to_container)
@@ -148,6 +149,9 @@ class DockerRuntime(ActionExecutionClient):
                 )
                 raise AgentRuntimeDisconnectedError from e
             if self.runtime_container_image is None:
+                logger.info(
+                    '[LOG] DockerRuntime.connect(): Runtime container image is None then build with base container image'
+                )
                 if self.base_container_image is None:
                     raise ValueError(
                         'Neither runtime container image nor base container image is set'

@@ -26,6 +26,7 @@ from openhands.events.observation import (
     Observation,
 )
 from openhands.events.stream import EventStreamSubscriber
+from openhands.integrations.service_types import ProviderType
 from openhands.resolver.interfaces.github import GithubIssueHandler, GithubPRHandler
 from openhands.resolver.interfaces.gitlab import GitlabIssueHandler, GitlabPRHandler
 from openhands.resolver.interfaces.issue import Issue
@@ -35,7 +36,6 @@ from openhands.resolver.interfaces.issue_definitions import (
 )
 from openhands.resolver.resolver_output import ResolverOutput
 from openhands.resolver.utils import (
-    Platform,
     codeact_user_response,
     get_unique_uid,
     identify_token,
@@ -49,7 +49,7 @@ AGENT_CLASS = 'CodeActAgent'
 
 def initialize_runtime(
     runtime: Runtime,
-    platform: Platform,
+    platform: ProviderType,
 ) -> None:
     """Initialize the runtime for the agent.
 
@@ -68,7 +68,7 @@ def initialize_runtime(
     if not isinstance(obs, CmdOutputObservation) or obs.exit_code != 0:
         raise RuntimeError(f'Failed to change directory to /workspace.\n{obs}')
 
-    if platform == Platform.GITLAB and os.getenv('GITLAB_CI') == 'true':
+    if platform == ProviderType.GITLAB and os.getenv('GITLAB_CI') == 'true':
         action = CmdRunAction(command='sudo chown -R 1001:0 /workspace/*')
         logger.info(action, extra={'msg_type': 'ACTION'})
         obs = runtime.run_action(action)
@@ -85,7 +85,7 @@ def initialize_runtime(
 async def complete_runtime(
     runtime: Runtime,
     base_commit: str,
-    platform: Platform,
+    platform: ProviderType,
 ) -> dict[str, Any]:
     """Complete the runtime for the agent.
 
@@ -121,7 +121,7 @@ async def complete_runtime(
     if not isinstance(obs, CmdOutputObservation) or obs.exit_code != 0:
         raise RuntimeError(f'Failed to set git config. Observation: {obs}')
 
-    if platform == Platform.GITLAB and os.getenv('GITLAB_CI') == 'true':
+    if platform == ProviderType.GITLAB and os.getenv('GITLAB_CI') == 'true':
         action = CmdRunAction(command='sudo git add -A')
     else:
         action = CmdRunAction(command='git add -A')
@@ -162,17 +162,23 @@ async def complete_runtime(
 
 async def process_issue(
     issue: Issue,
-    platform: Platform,
+    platform: ProviderType,
     base_commit: str,
     max_iterations: int,
     llm_config: LLMConfig,
     output_dir: str,
+    base_container_image: str,
     runtime_container_image: str | None,
     prompt_template: str,
     issue_handler: ServiceContextIssue | ServiceContextPR,
     repo_instruction: str | None = None,
     reset_logger: bool = False,
 ) -> ResolverOutput:
+    logger.info(f'[LOG] process_issue(): Base container image: {base_container_image}')
+    logger.info(
+        f'[LOG] process_issue(): Runtime container image: {runtime_container_image}'
+    )
+
     # Setup the logger properly, so you can run multi-processing to parallelize processing
     if reset_logger:
         log_dir = os.path.join(output_dir, 'infer_logs')
@@ -195,11 +201,19 @@ async def process_issue(
     # they're set by default if nothing else overrides them
     # FIXME we should remove them here
     sandbox_config = SandboxConfig(
+        base_container_image=base_container_image,
         runtime_container_image=runtime_container_image,
         enable_auto_lint=False,
         use_host_network=False,
         # large enough timeout, since some testcases take very long to run
         timeout=300,
+    )
+
+    logger.info(
+        f'[LOG] process_issue(): Sandbox config base_container_image: {sandbox_config.base_container_image}'
+    )
+    logger.info(
+        f'[LOG] process_issue(): Sandbox config runtime_container_image: {sandbox_config.runtime_container_image}'
     )
 
     if os.getenv('GITLAB_CI') == 'true':
@@ -320,15 +334,15 @@ def issue_handler_factory(
     repo: str,
     token: str,
     llm_config: LLMConfig,
-    platform: Platform,
+    platform: ProviderType,
     username: str | None = None,
     base_domain: str | None = None,
 ) -> ServiceContextIssue | ServiceContextPR:
     # Determine default base_domain based on platform
     if base_domain is None:
-        base_domain = 'github.com' if platform == Platform.GITHUB else 'gitlab.com'
+        base_domain = 'github.com' if platform == ProviderType.GITHUB else 'gitlab.com'
     if issue_type == 'issue':
-        if platform == Platform.GITHUB:
+        if platform == ProviderType.GITHUB:
             return ServiceContextIssue(
                 GithubIssueHandler(owner, repo, token, username, base_domain),
                 llm_config,
@@ -339,7 +353,7 @@ def issue_handler_factory(
                 llm_config,
             )
     elif issue_type == 'pr':
-        if platform == Platform.GITHUB:
+        if platform == ProviderType.GITHUB:
             return ServiceContextPR(
                 GithubPRHandler(owner, repo, token, username, base_domain), llm_config
             )
@@ -356,10 +370,11 @@ async def resolve_issue(
     repo: str,
     token: str,
     username: str,
-    platform: Platform,
+    platform: ProviderType,
     max_iterations: int,
     output_dir: str,
     llm_config: LLMConfig,
+    base_container_image: str,
     runtime_container_image: str | None,
     prompt_template: str,
     issue_type: str,
@@ -369,6 +384,11 @@ async def resolve_issue(
     reset_logger: bool = False,
     base_domain: str | None = None,
 ) -> None:
+    logger.info(f'[LOG] resolve_issue(): Base container image: {base_container_image}')
+    logger.info(
+        f'[LOG] resolve_issue(): Runtime container image: {runtime_container_image}'
+    )
+
     """Resolve a single issue.
 
     Args:
@@ -391,7 +411,7 @@ async def resolve_issue(
     """
     # Determine default base_domain based on platform
     if base_domain is None:
-        base_domain = 'github.com' if platform == Platform.GITHUB else 'gitlab.com'
+        base_domain = 'github.com' if platform == ProviderType.GITHUB else 'gitlab.com'
 
     issue_handler = issue_handler_factory(
         issue_type, owner, repo, token, llm_config, platform, username, base_domain
@@ -525,6 +545,7 @@ async def resolve_issue(
             max_iterations,
             llm_config,
             output_dir,
+            base_container_image,
             runtime_container_image,
             prompt_template,
             issue_handler,
@@ -566,6 +587,12 @@ def main() -> None:
         type=str,
         default=None,
         help='username to access the repository.',
+    )
+    parser.add_argument(
+        '--base-container-image',
+        type=str,
+        default=None,
+        help='base container image to use.',
     )
     parser.add_argument(
         '--runtime-container-image',
@@ -649,8 +676,27 @@ def main() -> None:
 
     my_args = parser.parse_args()
 
+    base_container_image = my_args.base_container_image
+    logger.info(f'[LOG] Base container image: {base_container_image}')
+
     runtime_container_image = my_args.runtime_container_image
     if runtime_container_image is None and not my_args.is_experimental:
+        # runtime_container_image = (
+        #     f'ghcr.io/all-hands-ai/runtime:{openhands.__version__}-nikolaik'
+        # )
+        logger.info(
+            'runtime_container_image is None and not my_args.is_experimental then intentionally set to None'
+        )
+        runtime_container_image = None
+
+    if runtime_container_image is not None and base_container_image is not None:
+        raise ValueError('Cannot provide both runtime and base container images.')
+
+    if (
+        runtime_container_image is None
+        and base_container_image is None
+        and not my_args.is_experimental
+    ):
         runtime_container_image = (
             f'ghcr.io/all-hands-ai/runtime:{openhands.__version__}-nikolaik'
         )
@@ -669,8 +715,6 @@ def main() -> None:
         raise ValueError('Token is required.')
 
     platform = identify_token(token, my_args.selected_repo, my_args.base_domain)
-    if platform == Platform.INVALID:
-        raise ValueError('Token is invalid.')
 
     api_key = my_args.llm_api_key or os.environ['LLM_API_KEY']
     model = my_args.llm_model or os.environ['LLM_MODEL']
@@ -716,6 +760,7 @@ def main() -> None:
             token=token,
             username=username,
             platform=platform,
+            base_container_image=base_container_image,
             runtime_container_image=runtime_container_image,
             max_iterations=my_args.max_iterations,
             output_dir=my_args.output_dir,
