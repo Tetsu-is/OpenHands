@@ -14,16 +14,14 @@ from tqdm import tqdm
 import openhands
 from openhands.core.config import LLMConfig
 from openhands.core.logger import openhands_logger as logger
+from openhands.integrations.service_types import ProviderType
 from openhands.resolver.interfaces.issue import Issue
 from openhands.resolver.resolve_issue import (
     issue_handler_factory,
     process_issue,
 )
 from openhands.resolver.resolver_output import ResolverOutput
-from openhands.resolver.utils import (
-    Platform,
-    identify_token,
-)
+from openhands.resolver.utils import identify_token
 
 
 def cleanup() -> None:
@@ -56,7 +54,7 @@ async def resolve_issues(
     repo: str,
     token: str,
     username: str,
-    platform: Platform,
+    platform: ProviderType,
     max_iterations: int,
     limit_issues: int | None,
     num_workers: int,
@@ -68,6 +66,7 @@ async def resolve_issues(
     issue_type: str,
     repo_instruction: str | None,
     issue_numbers: list[int] | None,
+    base_domain: str = 'github.com',
 ) -> None:
     """Resolve multiple github or gitlab issues.
 
@@ -88,7 +87,7 @@ async def resolve_issues(
         issue_numbers: List of issue numbers to resolve.
     """
     issue_handler = issue_handler_factory(
-        issue_type, owner, repo, token, llm_config, platform
+        issue_type, owner, repo, token, llm_config, platform, username, base_domain
     )
 
     # Load dataset
@@ -332,6 +331,12 @@ def main() -> None:
         choices=['issue', 'pr'],
         help='Type of issue to resolve, either open issue or pr comments.',
     )
+    parser.add_argument(
+        '--base-domain',
+        type=str,
+        default='github.com',
+        help='Base domain for GitHub Enterprise (default: github.com)',
+    )
 
     my_args = parser.parse_args()
 
@@ -339,7 +344,14 @@ def main() -> None:
 
     runtime_container_image = my_args.runtime_container_image
 
-    if runtime_container_image is None:
+    if runtime_container_image is not None and base_container_image is not None:
+        raise ValueError('Cannot provide both runtime and base container images.')
+
+    if (
+        runtime_container_image is None
+        and base_container_image is None
+        and not my_args.is_experimental
+    ):
         runtime_container_image = (
             f'ghcr.io/all-hands-ai/runtime:{openhands.__version__}-nikolaik'
         )
@@ -353,16 +365,14 @@ def main() -> None:
     if not token:
         raise ValueError('Token is required.')
 
-    platform = identify_token(token, my_args.selected_repo)
-    if platform == Platform.INVALID:
-        raise ValueError('Token is invalid.')
-
+    platform = identify_token(token, my_args.selected_repo, my_args.base_domain)
     api_key = my_args.llm_api_key or os.environ['LLM_API_KEY']
 
     llm_config = LLMConfig(
         model=my_args.llm_model or os.environ['LLM_MODEL'],
         api_key=SecretStr(api_key) if api_key else None,
         base_url=my_args.llm_base_url or os.environ.get('LLM_BASE_URL', None),
+        api_version=os.environ.get('LLM_API_VERSION', None),
     )
 
     repo_instruction = None
@@ -408,6 +418,7 @@ def main() -> None:
             issue_type=issue_type,
             repo_instruction=repo_instruction,
             issue_numbers=issue_numbers,
+            base_domain=my_args.base_domain,
         )
     )
 

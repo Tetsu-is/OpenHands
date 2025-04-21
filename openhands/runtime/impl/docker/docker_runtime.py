@@ -8,7 +8,6 @@ import httpx
 import tenacity
 from docker.models.containers import Container
 
-import openhands
 from openhands.core.config import AppConfig
 from openhands.core.exceptions import (
     AgentRuntimeDisconnectedError,
@@ -32,9 +31,6 @@ from openhands.utils.shutdown_listener import add_shutdown_listener
 from openhands.utils.tenacity_stop import stop_if_should_exit
 
 CONTAINER_NAME_PREFIX = 'openhands-runtime-'
-DEFAULT_RUNTIME_CONTAINER_IMAGE = (
-    f'ghcr.io/all-hands-ai/runtime:{openhands.__version__}-nikolaik'
-)
 
 EXECUTION_SERVER_PORT_RANGE = (30000, 39999)
 VSCODE_PORT_RANGE = (40000, 49999)
@@ -48,7 +44,13 @@ def _is_retryable_wait_until_alive_error(exception):
         return _is_retryable_wait_until_alive_error(cause)
 
     return isinstance(
-        exception, (ConnectionError, httpx.NetworkError, httpx.RemoteProtocolError)
+        exception,
+        (
+            ConnectionError,
+            httpx.NetworkError,
+            httpx.RemoteProtocolError,
+            httpx.HTTPStatusError,
+        ),
     )
 
 
@@ -84,7 +86,6 @@ class DockerRuntime(ActionExecutionClient):
             )
 
         self.config = config
-        self._runtime_initialized: bool = False
         self.status_callback = status_callback
 
         self._host_port = -1
@@ -131,7 +132,8 @@ class DockerRuntime(ActionExecutionClient):
                 f'Installing extra user-provided dependencies in the runtime image: {self.config.sandbox.runtime_extra_deps}',
             )
 
-    def _get_action_execution_server_host(self):
+    @property
+    def action_execution_server_url(self):
         return self.api_url
 
     async def connect(self):
@@ -162,21 +164,6 @@ class DockerRuntime(ActionExecutionClient):
                     extra_deps=self.config.sandbox.runtime_extra_deps,
                     force_rebuild=self.config.sandbox.force_rebuild_runtime,
                     extra_build_args=self.config.sandbox.runtime_extra_build_args,
-                )
-
-            if self.runtime_container_image != DEFAULT_RUNTIME_CONTAINER_IMAGE:
-                if self.base_container_image:
-                    raise ValueError(
-                        'Please specify either runtime_container_image or base_container_image.'
-                    )
-
-            if self.base_container_image:
-                self.send_status_message('STATUS$STARTING_CONTAINER')
-                self.runtime_container_image = build_runtime_image(
-                    self.base_container_image,
-                    self.runtime_builder,
-                    platform=self.config.sandbox.platform,
-                    extra_deps=self.config.sandbox.runtime_extra_deps,
                 )
 
             self.log(
