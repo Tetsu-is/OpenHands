@@ -45,6 +45,7 @@ def identify_token(
         }
 
         logger.info(f'[LOG] github_repo_url: {github_repo_url}')
+        logger.error(f'[LOG] github_repo_url: {github_repo_url}')
 
         try:
             github_repo_response = httpx.get(
@@ -54,6 +55,7 @@ def identify_token(
                 return ProviderType.GITHUB
         except httpx.HTTPError as e:
             logger.info(f'[LOG] status_code: {github_repo_response.status_code}')
+            logger.error(f'[LOG] status_code: {github_repo_response.status_code}')
             logger.error(f'Error connecting to GitHub API (selected_repo check): {e}')
 
     # Try GitHub PAT format (token)
